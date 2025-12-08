@@ -16,5 +16,8 @@ export default {
   ],
   session: { strategy: "jwt" },
   secret: process.env.AUTH_SECRET,
+  pages: {
+    signIn: "/auth",
+  },
   debug: process.env.NODE_ENV === "development",
 } satisfies NextAuthConfig;
