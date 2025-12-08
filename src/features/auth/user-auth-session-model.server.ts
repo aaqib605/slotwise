@@ -1,13 +1,15 @@
 import { prop } from "ramda";
 import { prisma } from "@/prisma";
+import { Session } from "next-auth";
 
-export const getGoogleAccountByEmail = async (email: string) =>
-  prisma.account.findFirst({
+export async function getGoogleAccountByEmail(email: string) {
+  return prisma.account.findFirst({
     where: {
       provider: "google",
       user: { email },
     },
   });
+}
 
 type Account = {
   provider: string;
@@ -15,10 +17,10 @@ type Account = {
   refresh_token: string | null;
 };
 
-export const updateAccessToken = async (
+export async function updateAccessToken(
   account: Account,
   refreshed: Record<string, unknown>
-): Promise<string> => {
+): Promise<string> {
   const accessToken = prop("accessToken", refreshed) as string;
 
   const refreshToken =
@@ -42,4 +44,19 @@ export const updateAccessToken = async (
   });
 
   return accessToken;
-};
+}
+
+export async function getCurrentUser(session: Session) {
+  return prisma.user.findUnique({
+    where: {
+      email: session.user?.email as string,
+    },
+    include: {
+      messages: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+}

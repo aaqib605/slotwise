@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bot, Calendar, Clock, Mail, Send } from "lucide-react";
 
 import { DashboardHeader } from "@/components/dashboard-header";
@@ -8,9 +8,26 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { ChatMessage } from "@/components/chat-message";
 
-export default function DashboardPageComponent() {
+import { Message } from "../../../generated/prisma/client";
+
+export default function DashboardPageComponent({
+  messages,
+}: {
+  messages: Message[];
+}) {
+  const [localMessages] = useState<Message[]>(messages);
   const [activeTab, setActiveTab] = useState("chat");
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // scroll to the bottom of the chat when new messages are added
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [localMessages]);
   return (
     <div className="flex h-screen w-full bg-background">
       {/* Sidebar */}
@@ -46,7 +63,12 @@ export default function DashboardPageComponent() {
 
           <div className="flex-1 overflow-y-auto px-4 pb-4 pt-14 mb-32">
             <TabsContent value="chat" className="space-y-4">
-              CHAT
+              <div className="fleTabsContent-4 pb-4">
+                {localMessages.map((message) => (
+                  <ChatMessage key={message.id} message={message} />
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
             </TabsContent>
 
             <TabsContent value="calendar" className="space-y-4">
