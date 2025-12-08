@@ -32,7 +32,7 @@ export default function AuthPage() {
       <div className="w-full max-w-md px-4">
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2">
-            <span className="text-3xl font-bold">SlotWise</span>
+            <span className="text-3xl font-bold">Slotwise</span>
           </div>
         </div>
 
