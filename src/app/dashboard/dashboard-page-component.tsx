@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Bot, Calendar, Clock, Mail, Send } from "lucide-react";
 import { createId } from "@paralleldrive/cuid2";
+import { useRouter } from "next/navigation";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
@@ -25,16 +26,23 @@ import {
   scheduleGoogleCalendarEvent,
 } from "@/actions/calendar";
 
-import { CalendarEvent, Message, User } from "../../../generated/prisma/client";
+import {
+  CalendarEvent,
+  Email,
+  Message,
+  User,
+} from "../../../generated/prisma/client";
 
 export default function DashboardPageComponent({
   messages,
   calendarEvents,
   user,
+  emails,
 }: {
   messages: Message[];
   calendarEvents: CalendarEvent[];
   user: User;
+  emails: Email[];
 }) {
   const [activeTab, setActiveTab] = useState("chat");
   const [input, setInput] = useState("");
@@ -52,6 +60,8 @@ export default function DashboardPageComponent({
   const [showCalendarEvent, setShowCalendarEvent] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const router = useRouter();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -127,7 +137,7 @@ export default function DashboardPageComponent({
         }),
       ]);
 
-      // router.refresh();
+      router.refresh();
     } catch (error) {
       console.error("Failed to save calendar event:", error);
 

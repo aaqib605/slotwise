@@ -1,8 +1,10 @@
 import { auth } from "../../../auth";
 
 import { getCurrentUser } from "@/features/auth/user-auth-session-model.server";
+
 import { createAssistantDefaultMessage, getMessages } from "@/actions/messages";
 import { getCalendarEvents } from "@/actions/calendar";
+import { getEmails } from "@/actions/emails";
 
 import DashboardPageComponent from "@/app/dashboard/dashboard-page-component";
 
@@ -22,9 +24,10 @@ export default async function Dashboard() {
     await createAssistantDefaultMessage(user.id);
   }
 
-  const [messages, calendarEvents] = await Promise.all([
+  const [messages, calendarEvents, emails] = await Promise.all([
     getMessages(user.id),
     getCalendarEvents(user.id),
+    getEmails(user.id),
   ]);
 
   return (
@@ -32,6 +35,7 @@ export default async function Dashboard() {
       messages={messages}
       calendarEvents={calendarEvents}
       user={user}
+      emails={emails}
     />
   );
 }

@@ -20,6 +20,7 @@ model User {
   sessions      Session[]
   messages      Message[]
   calendarEvents CalendarEvent[]
+  emails        Email[]
  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -90,6 +91,19 @@ model CalendarEvent {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   attendees   String[]
+
+  // Relation to User
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Email {
+  id        String   @id @default(cuid())
+  body      String
+  subject   String
+  to        String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relation to User
   userId String
