@@ -15,6 +15,7 @@ import { CalendarEventCard } from "@/components/calendar-event-card";
 import { CalendarEventList } from "@/components/calendar-event-list";
 import { EmailList } from "@/components/email-list";
 import { EmailDraft } from "@/components/email-draft";
+import { ReminderCard } from "@/components/reminder-card";
 
 import { CalendarEventSchedule } from "@/features/calendarEvent/types";
 import {
@@ -35,6 +36,7 @@ import {
   CalendarEvent,
   Email,
   Message,
+  Reminder,
   User,
 } from "../../../generated/prisma/client";
 
@@ -43,11 +45,13 @@ export default function DashboardPageComponent({
   calendarEvents,
   user,
   emails,
+  reminders,
 }: {
   messages: Message[];
   calendarEvents: CalendarEvent[];
   user: User;
   emails: Email[];
+  reminders: Reminder[];
 }) {
   const [activeTab, setActiveTab] = useState("chat");
   const [input, setInput] = useState("");
@@ -304,7 +308,7 @@ export default function DashboardPageComponent({
             </TabsContent>
 
             <TabsContent value="reminders" className="space-y-4">
-              REMINDERS
+              <ReminderCard reminders={reminders} />
             </TabsContent>
 
             <TabsContent value="gmail" className="space-y-4">
