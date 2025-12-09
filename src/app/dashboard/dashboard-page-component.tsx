@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/components/chat-message";
 import { CalendarEventCard } from "@/components/calendar-event-card";
 import { CalendarEventList } from "@/components/calendar-event-list";
+import { EmailList } from "@/components/email-list";
 
 import { CalendarEventSchedule } from "@/features/calendarEvent/types";
 import {
@@ -222,7 +223,7 @@ export default function DashboardPageComponent({
             </TabsContent>
 
             <TabsContent value="gmail" className="space-y-4">
-              GMAIL
+              <EmailList emails={emails} />
             </TabsContent>
           </div>
 
