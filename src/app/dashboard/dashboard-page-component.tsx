@@ -14,6 +14,7 @@ import { ChatMessage } from "@/components/chat-message";
 import { CalendarEventCard } from "@/components/calendar-event-card";
 import { CalendarEventList } from "@/components/calendar-event-list";
 import { EmailList } from "@/components/email-list";
+import { EmailDraft } from "@/components/email-draft";
 
 import { CalendarEventSchedule } from "@/features/calendarEvent/types";
 import {
@@ -21,11 +22,14 @@ import {
   parseCalendarEvent,
 } from "@/features/calendarEvent/utils";
 import { createMessageForCurrentUser } from "@/features/messages/messages-helpers.server";
+import { parseEmailDraft } from "@/features/email/utils";
+import { EmailDraft as EmailDraftType } from "@/features/email/types";
 
 import {
   createCalendarEvent,
   scheduleGoogleCalendarEvent,
 } from "@/actions/calendar";
+import { createEmail, sendEmailUsingGmail } from "@/actions/emails";
 
 import {
   CalendarEvent,
@@ -59,6 +63,12 @@ export default function DashboardPageComponent({
     attendees: [],
   });
   const [showCalendarEvent, setShowCalendarEvent] = useState(false);
+  const [showEmailDraft, setShowEmailDraft] = useState(false);
+  const [emailDraft, setEmailDraft] = useState({
+    to: "",
+    subject: "",
+    body: "",
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -83,6 +93,13 @@ export default function DashboardPageComponent({
     ) {
       return processCalendarEvent(message);
     }
+
+    if (
+      message.toLowerCase().includes("draft an email") ||
+      message.toLowerCase().includes("send an email")
+    ) {
+      return processEmailDraft(message);
+    }
   }
 
   function processCalendarEvent(message: string) {
@@ -90,6 +107,13 @@ export default function DashboardPageComponent({
 
     setCalendarEvent(event);
     setShowCalendarEvent(true);
+  }
+
+  function processEmailDraft(message: string): void {
+    const emailDraft = parseEmailDraft(message);
+
+    setEmailDraft(emailDraft);
+    setShowEmailDraft(true);
   }
 
   async function onSaveCalendarEvent(eventData: CalendarEventSchedule) {
@@ -156,6 +180,58 @@ export default function DashboardPageComponent({
     }
   }
 
+  async function onSendEmail(emailDraft: EmailDraftType) {
+    // PROMPT example:
+    // send an email to johndoe@gmail.com with subject "Meeting Reminder" and body "Hi Bright, just reminding you
+    // that our meeting is tomorrow at 10 AM. Let me know if you need anything."
+
+    setShowEmailDraft(false);
+    const optimisticId = createId();
+
+    setLocalMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        id: optimisticId,
+        userId: user.id,
+        content: `Email sent to ${emailDraft.to} with subject "${emailDraft.subject}"`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    try {
+      await Promise.all([
+        createMessageForCurrentUser({
+          role: "assistant",
+          message: `Email sent to ${emailDraft.to} with subject "${emailDraft.subject}"`,
+        }),
+        sendEmailUsingGmail(emailDraft),
+        createEmail({
+          ...emailDraft,
+          userId: user.id,
+          id: createId(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      ]);
+    } catch (error) {
+      console.error("Failed to send email:", error);
+
+      setLocalMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === optimisticId && msg.role === "assistant"
+            ? {
+                ...msg,
+                content:
+                  "Something went wrong while sending your email. Please try again.",
+              }
+            : msg
+        )
+      );
+    }
+  }
+
   // scroll to the bottom of the chat when new messages are added
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -210,6 +286,15 @@ export default function DashboardPageComponent({
                   initialData={calendarEvent}
                   onCancel={() => setShowCalendarEvent(false)}
                   onSave={onSaveCalendarEvent}
+                />
+              )}
+
+              {showEmailDraft && (
+                <EmailDraft
+                  draft={emailDraft}
+                  setDraft={setEmailDraft}
+                  onClose={() => setShowEmailDraft(false)}
+                  onSend={onSendEmail}
                 />
               )}
             </TabsContent>
