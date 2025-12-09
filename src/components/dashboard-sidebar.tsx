@@ -15,6 +15,8 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar";
 
+import { handleLogout } from "@/actions/auth";
+
 export function DashboardSidebar() {
   return (
     <Sidebar>
@@ -62,7 +64,7 @@ export function DashboardSidebar() {
           </SidebarMenuItem>
 
           <SidebarMenuItem>
-            <SidebarMenuButton>
+            <SidebarMenuButton onClick={async () => handleLogout()}>
               <LogOut className="h-4 w-4" />
               <span>Logout</span>
             </SidebarMenuButton>
