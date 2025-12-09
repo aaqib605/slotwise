@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { Bot, Calendar, Clock, Mail, Send } from "lucide-react";
 import { createId } from "@paralleldrive/cuid2";
 import { useRouter } from "next/navigation";
+import { parseISO } from "date-fns";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
@@ -16,6 +17,7 @@ import { CalendarEventList } from "@/components/calendar-event-list";
 import { EmailList } from "@/components/email-list";
 import { EmailDraft } from "@/components/email-draft";
 import { ReminderCard } from "@/components/reminder-card";
+import { ReminderDraftCard } from "@/components/reminder-draft-card";
 
 import { CalendarEventSchedule } from "@/features/calendarEvent/types";
 import {
@@ -25,12 +27,15 @@ import {
 import { createMessageForCurrentUser } from "@/features/messages/messages-helpers.server";
 import { parseEmailDraft } from "@/features/email/utils";
 import { EmailDraft as EmailDraftType } from "@/features/email/types";
+import { parseReminder } from "@/features/reminder/utils";
+import { ReminderSchedule } from "@/features/reminder/type";
 
 import {
   createCalendarEvent,
   scheduleGoogleCalendarEvent,
 } from "@/actions/calendar";
 import { createEmail, sendEmailUsingGmail } from "@/actions/emails";
+import { createReminder, scheduleReminder } from "@/actions/reminder";
 
 import {
   CalendarEvent,
@@ -68,10 +73,17 @@ export default function DashboardPageComponent({
   });
   const [showCalendarEvent, setShowCalendarEvent] = useState(false);
   const [showEmailDraft, setShowEmailDraft] = useState(false);
+  const [showReminder, setShowReminder] = useState(false);
   const [emailDraft, setEmailDraft] = useState({
     to: "",
     subject: "",
     body: "",
+  });
+  const [reminderDraft, setReminderDraft] = useState({
+    summary: "",
+    description: "",
+    start: "",
+    end: "",
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -103,6 +115,10 @@ export default function DashboardPageComponent({
       message.toLowerCase().includes("send an email")
     ) {
       return processEmailDraft(message);
+    }
+
+    if (message.toLowerCase().includes("remind me")) {
+      return processReminder(message);
     }
   }
 
@@ -184,6 +200,13 @@ export default function DashboardPageComponent({
     }
   }
 
+  function processReminder(message: string): void {
+    const reminder = parseReminder(message);
+
+    setReminderDraft(reminder);
+    setShowReminder(true);
+  }
+
   async function onSendEmail(emailDraft: EmailDraftType) {
     // PROMPT example:
     // send an email to johndoe@gmail.com with subject "Meeting Reminder" and body "Hi Bright, just reminding you
@@ -229,6 +252,61 @@ export default function DashboardPageComponent({
                 ...msg,
                 content:
                   "Something went wrong while sending your email. Please try again.",
+              }
+            : msg
+        )
+      );
+    }
+  }
+
+  async function onSaveReminder(reminderData: ReminderSchedule) {
+    // PROMPT example:
+    // Remind me: titled "Doctor Appointment" from 2024-12-12T15:00:00Z to 2024-12-12T16:00:00Z with description
+    // "Annual check-up with Dr. Smith at the clinic." and notify john@example.com and jane@example.com.
+
+    setShowReminder(false);
+
+    const optimisticId = createId();
+
+    setLocalMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        id: optimisticId,
+        userId: user.id,
+        content: `Reminder set for ${reminderData.summary} from ${reminderData.start} to ${reminderData.end}`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    try {
+      await Promise.all([
+        createMessageForCurrentUser({
+          role: "assistant",
+          message: `Reminder set for ${reminderData.summary} from ${reminderData.start} to ${reminderData.end}`,
+        }),
+        scheduleReminder(reminderData),
+        createReminder({
+          ...reminderData,
+          start: parseISO(reminderData.start),
+          end: parseISO(reminderData.end),
+          userId: user.id,
+          id: createId(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      ]);
+    } catch (error) {
+      console.error("Failed to save reminder:", error);
+
+      setLocalMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === optimisticId && msg.role === "assistant"
+            ? {
+                ...msg,
+                content:
+                  "Something went wrong while saving your reminder. Please try again.",
               }
             : msg
         )
@@ -299,6 +377,14 @@ export default function DashboardPageComponent({
                   setDraft={setEmailDraft}
                   onClose={() => setShowEmailDraft(false)}
                   onSend={onSendEmail}
+                />
+              )}
+
+              {showReminder && (
+                <ReminderDraftCard
+                  initialData={reminderDraft}
+                  onCancel={() => setShowReminder(false)}
+                  onSave={onSaveReminder}
                 />
               )}
             </TabsContent>
