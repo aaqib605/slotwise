@@ -2,6 +2,7 @@ import { auth } from "../../../auth";
 
 import { getCurrentUser } from "@/features/auth/user-auth-session-model.server";
 import { createAssistantDefaultMessage, getMessages } from "@/actions/messages";
+import { getCalendarEvents } from "@/actions/calendar";
 
 import DashboardPageComponent from "@/app/dashboard/dashboard-page-component";
 
@@ -21,7 +22,16 @@ export default async function Dashboard() {
     await createAssistantDefaultMessage(user.id);
   }
 
-  const [messages] = await Promise.all([getMessages(user.id)]);
+  const [messages, calendarEvents] = await Promise.all([
+    getMessages(user.id),
+    getCalendarEvents(user.id),
+  ]);
 
-  return <DashboardPageComponent messages={messages} />;
+  return (
+    <DashboardPageComponent
+      messages={messages}
+      calendarEvents={calendarEvents}
+      user={user}
+    />
+  );
 }
